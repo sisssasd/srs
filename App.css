@@ -1,18 +1,84 @@
-/* src/App.css */
-.App {
-    text-align: center;
+// src/App.js
+import React, { useState, useEffect } from "react";
+import { ethers } from "ethers";
+import GameHistory from "./GameHistory";
+import "./App.css";
+
+const contractAddress = "ВАШ_АДРЕС_КОНТРАКТА";
+const contractABI = [
+    // ABI вашего контракта здесь
+];
+
+function App() {
+    const [provider, setProvider] = useState(null);
+    const [signer, setSigner] = useState(null);
+    const [contract, setContract] = useState(null);
+    const [choice, setChoice] = useState("");
+    const [history, setHistory] = useState([]);
+
+    useEffect(() => {
+        async function connectWallet() {
+            if (window.ethereum) {
+                const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                const newSigner = newProvider.getSigner();
+                setProvider(newProvider);
+                setSigner(newSigner);
+
+                const newContract = new ethers.Contract(contractAddress, contractABI, newSigner);
+                setContract(newContract);
+            } else {
+                alert("MetaMask не найден");
+            }
+        }
+        connectWallet();
+    }, []);
+
+    const play = async () => {
+        if (!choice) {
+            alert("Выберите камень, ножницы или бумагу!");
+            return;
+        }
+
+        try {
+            // Отправляем ход игрока в контракт и ждем результата
+            const tx = await contract.play(choice); // предполагаем, что контракт сам генерирует ход компьютера
+            const receipt = await tx.wait();
+
+            // Получаем результат из события
+            const resultEvent = receipt.events.find(event => event.event === 'GameResult');
+            const { playerMove, computerMove, result } = resultEvent.args;
+
+            alert(`Ваш выбор: ${playerMove}\nВыбор компьютера: ${computerMove}\nРезультат: ${result}`);
+            fetchHistory(); // обновляем историю игр
+        } catch (error) {
+            console.error("Ошибка в отправке хода:", error);
+            alert("Произошла ошибка при игре. Проверьте контракт и подключение.");
+        }
+    };
+
+    const fetchHistory = async () => {
+        try {
+            const games = await contract.getHistory();
+            setHistory(games);
+        } catch (error) {
+            console.error("Ошибка получения истории:", error);
+        }
+    };
+
+    return (
+        <div className="App">
+            <h1>Камень-ножницы-бумага</h1>
+            <div className="choices">
+                <button onClick={() => setChoice("rock")}>Камень</button>
+                <button onClick={() => setChoice("paper")}>Бумага</button>
+                <button onClick={() => setChoice("scissors")}>Ножницы</button>
+            </div>
+            <button onClick={play}>Играть</button>
+            <h2>История игр</h2>
+            <GameHistory history={history} />
+        </div>
+    );
 }
 
-.choices button { 
-    margin: 5px;
-    padding: 10px 20px;
-    font-size: 16px;
-}
-
-button {
-    cursor: pointer;
-}
-
-ul {
-    list-style-type: none;
-}
+export default App;
