@@ -1,0 +1,18 @@
+/* src/App.css */
+.App {
+    text-align: center;
+}
+
+.choices button { 
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+button {
+    cursor: pointer;
+}
+
+ul {
+    list-style-type: none;
+}
